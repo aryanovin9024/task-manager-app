@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import path from 'node:path';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // There is an unrelated package-lock.json further up the filesystem on some
+  // machines; pin the tracing root so the build never walks outside the repo.
+  outputFileTracingRoot: path.resolve(import.meta.dirname),
 };
 
 export default nextConfig;
