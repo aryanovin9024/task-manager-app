@@ -71,6 +71,14 @@ export const signupSchema = z.object({
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 
+/** Only same-origin absolute paths are accepted, so `?next=` cannot be abused. */
+export const nextPathSchema = z
+  .string()
+  .optional()
+  .transform((value) =>
+    value && value.startsWith('/') && !value.startsWith('//') ? value : undefined,
+  );
+
 export const loginSchema = z.object({
   /** Email address or username — we work out which on the server. */
   identifier: z.preprocess(
@@ -79,6 +87,7 @@ export const loginSchema = z.object({
   ),
   password: z.string().min(1, 'Enter your password').max(200),
   timezone: z.preprocess(trimmed, z.string().max(64).optional()),
+  next: nextPathSchema,
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -125,9 +134,15 @@ export const removeMemberSchema = z.object({
 /* Tasks                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * `undefined` (field omitted/blank) means "default to the creator";
+ * the literal `'unassigned'` means "explicitly nobody".
+ */
+export const UNASSIGNED = 'unassigned' as const;
+
 const optionalAssignee = z.preprocess(
-  (value) => (value === '' || value === 'unassigned' ? undefined : value),
-  cuidSchema.optional(),
+  (value) => (value === '' || value === null ? undefined : value),
+  z.union([z.literal(UNASSIGNED), cuidSchema]).optional(),
 );
 
 export const createTaskSchema = z.object({
@@ -188,7 +203,7 @@ export type StatsQueryInput = z.infer<typeof statsQuerySchema>;
 /** Uniform shape every server action returns so forms can render field errors. */
 export type ActionState =
   | { status: 'idle' }
-  | { status: 'success'; message?: string }
+  | { status: 'success'; message?: string; redirectTo?: string }
   | { status: 'error'; message: string; fieldErrors?: Record<string, string> };
 
 export const idleState: ActionState = { status: 'idle' };
