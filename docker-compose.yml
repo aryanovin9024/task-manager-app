@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskmanager-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: taskmanager
+      POSTGRES_DB: taskmanager
+    ports:
+      # Host port 5434 avoids clashing with other local Postgres instances.
+      - '5434:5432'
+    volumes:
+      - taskmanager_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U taskmanager -d taskmanager']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  taskmanager_pgdata:
+    name: taskmanager_pgdata
