@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { getProjectAccess } from '@/lib/authz';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/session';
@@ -55,11 +56,11 @@ export async function createProjectAction(
   revalidatePath('/projects');
   revalidatePath('/dashboard');
 
-  return {
-    status: 'success',
-    message: 'Project created.',
-    redirectTo: `/projects/${project.id}`,
-  };
+  // Redirect from the server rather than returning a path for the client to
+  // push. Pushing a new route from inside the action's transition, while that
+  // same transition is applying the revalidated tree for the page we are
+  // leaving, deadlocks in a production build — the form stays pending forever.
+  redirect(`/projects/${project.id}`);
 }
 
 export async function updateProjectAction(
@@ -110,7 +111,10 @@ export async function deleteProjectAction(
   revalidatePath('/projects');
   revalidatePath('/dashboard');
 
-  return { status: 'success', message: 'Project deleted.', redirectTo: '/projects' };
+  // Server-side for the same reason as createProjectAction: the project page
+  // we are on no longer exists, so the navigation has to be part of the
+  // action's own response.
+  redirect('/projects');
 }
 
 export async function addMemberAction(

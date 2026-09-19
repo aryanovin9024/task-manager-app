@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useActionState, useState } from 'react';
 import { Trash2, TriangleAlert } from 'lucide-react';
 import { FormError } from '@/components/forms/field-error';
@@ -25,15 +24,11 @@ import type { ProjectDetail } from '@/server/types';
 /** Owner-only: delete the project and every task inside it. */
 export function DeleteProjectDialog({ project }: { project: ProjectDetail }) {
   const [open, setOpen] = useState(false);
-  const router = useRouter();
   const [state, formAction] = useActionState<ActionState, FormData>(deleteProjectAction, idleState);
 
-  useActionToast(state, {
-    onSuccess: () => {
-      setOpen(false);
-      router.push(state.status === 'success' ? (state.redirectTo ?? '/projects') : '/projects');
-    },
-  });
+  // On success the action itself redirects back to /projects, so there is
+  // nothing to do here beyond surfacing a failure.
+  useActionToast(state, { onSuccess: () => setOpen(false) });
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

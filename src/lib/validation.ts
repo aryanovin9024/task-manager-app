@@ -81,10 +81,7 @@ export const nextPathSchema = z
 
 export const loginSchema = z.object({
   /** Email address or username — we work out which on the server. */
-  identifier: z.preprocess(
-    lowercased,
-    z.string().min(1, 'Enter your email or username').max(200),
-  ),
+  identifier: z.preprocess(lowercased, z.string().min(1, 'Enter your email or username').max(200)),
   password: z.string().min(1, 'Enter your password').max(200),
   timezone: z.preprocess(trimmed, z.string().max(64).optional()),
   next: nextPathSchema,
@@ -181,9 +178,7 @@ export type ToggleTaskInput = z.infer<typeof toggleTaskSchema>;
 export const taskFilterSchema = z.object({
   assignee: z.string().max(64).optional(),
   status: z.enum(['all', 'todo', 'done']).catch('all'),
-  overdue: z
-    .preprocess((value) => value === 'true' || value === '1', z.boolean())
-    .catch(false),
+  overdue: z.preprocess((value) => value === 'true' || value === '1', z.boolean()).catch(false),
 });
 export type TaskFilterInput = z.infer<typeof taskFilterSchema>;
 
@@ -203,7 +198,7 @@ export type StatsQueryInput = z.infer<typeof statsQuerySchema>;
 /** Uniform shape every server action returns so forms can render field errors. */
 export type ActionState =
   | { status: 'idle' }
-  | { status: 'success'; message?: string; redirectTo?: string }
+  | { status: 'success'; message?: string }
   | { status: 'error'; message: string; fieldErrors?: Record<string, string> };
 
 export const idleState: ActionState = { status: 'idle' };
@@ -219,6 +214,9 @@ export function fieldErrorsFrom(error: z.ZodError): Record<string, string> {
 }
 
 /** Turns a failed parse into the error half of `ActionState`. */
-export function invalid(error: z.ZodError, message = 'Please fix the highlighted fields.'): ActionState {
+export function invalid(
+  error: z.ZodError,
+  message = 'Please fix the highlighted fields.',
+): ActionState {
   return { status: 'error', message, fieldErrors: fieldErrorsFrom(error) };
 }

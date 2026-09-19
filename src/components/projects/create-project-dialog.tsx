@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useActionState, useId, useState, type ReactElement } from 'react';
 import { Plus } from 'lucide-react';
 import { FieldError, FormError } from '@/components/forms/field-error';
@@ -28,17 +27,11 @@ export function CreateProjectDialog({ children }: { children?: ReactElement }) {
   const [open, setOpen] = useState(false);
   const nameId = useId();
   const descriptionId = useId();
-  const router = useRouter();
   const [state, formAction] = useActionState<ActionState, FormData>(createProjectAction, idleState);
 
-  useActionToast(state, {
-    onSuccess: () => {
-      setOpen(false);
-      if (state.status === 'success' && state.redirectTo) {
-        router.push(state.redirectTo);
-      }
-    },
-  });
+  // On success the action redirects straight into the new project, so this
+  // only has to deal with the failure case.
+  useActionToast(state, { onSuccess: () => setOpen(false) });
 
   const fieldErrors = state.status === 'error' ? state.fieldErrors : undefined;
 

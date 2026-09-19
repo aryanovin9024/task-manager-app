@@ -19,6 +19,19 @@ const BUCKET_NOUNS: Record<PeriodKind, string> = {
   monthly: 'months',
 };
 
+const BUCKET_NOUN_SINGULAR: Record<PeriodKind, string> = {
+  daily: 'day',
+  weekly: 'week',
+  monthly: 'month',
+};
+
+/**
+ * A bucket where nothing was due draws no bar at all, while a bucket where
+ * nothing was *done* still draws a sliver — otherwise "0%" and "nothing due"
+ * would be indistinguishable at the baseline.
+ */
+const ZERO_BAR_HEIGHT = 3;
+
 /** One bar. `percent` is chart-safe (0 for empty buckets); `hasData` tells them apart. */
 interface ChartDatum {
   key: string;
@@ -57,6 +70,7 @@ export function ProductivityChart({ series, periodKind }: ProductivityChartProps
   const first = data[0];
   const last = data[data.length - 1];
   const measured = data.filter((datum) => datum.hasData);
+  const emptyCount = data.length - measured.length;
 
   return (
     <figure className="w-full">
@@ -84,13 +98,28 @@ export function ProductivityChart({ series, periodKind }: ProductivityChartProps
             content={ProductivityTooltip}
             cursor={{ fill: 'var(--muted-foreground)', fillOpacity: 0.12 }}
           />
-          <Bar dataKey="percent" radius={[4, 4, 0, 0]} isAnimationActive={false}>
+          <Bar
+            dataKey="percent"
+            radius={[4, 4, 0, 0]}
+            isAnimationActive={false}
+            minPointSize={(_value: number | null | undefined, index: number) =>
+              data[index]?.hasData ? ZERO_BAR_HEIGHT : 0
+            }
+          >
             {data.map((datum) => (
-              <Cell key={datum.key} fill={datum.hasData ? 'var(--chart-1)' : 'var(--muted)'} />
+              <Cell key={datum.key} fill={datum.hasData ? 'var(--chart-1)' : 'transparent'} />
             ))}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+
+      {emptyCount > 0 ? (
+        <p className="text-muted-foreground mt-2 text-xs">
+          {emptyCount === 1
+            ? `1 ${BUCKET_NOUN_SINGULAR[periodKind]} had nothing due and is left blank.`
+            : `${emptyCount} ${BUCKET_NOUNS[periodKind]} had nothing due and are left blank.`}
+        </p>
+      ) : null}
 
       <figcaption className="sr-only">
         {`Bar chart of productivity for ${data.length} ${BUCKET_NOUNS[periodKind]}, from ${first.fullLabel} to ${last.fullLabel}. ` +
