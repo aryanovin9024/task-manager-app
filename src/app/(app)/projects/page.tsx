@@ -17,6 +17,12 @@ import { listProjectsForUser } from '@/server/queries/projects';
 
 export const metadata: Metadata = { title: 'Projects' };
 
+/**
+ * Deliberately has no `loading.tsx` and no in-page `<Suspense>`: any Suspense
+ * boundary around this grid stops the create-project server action from ever
+ * committing in a production build. See DECISIONS.md §11. The page is a single
+ * aggregated query, so it renders fast enough not to need one.
+ */
 export default async function ProjectsPage() {
   const user = await requireUser();
   const projects = await listProjectsForUser(user.id, user.timezone);

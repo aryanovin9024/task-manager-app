@@ -11,11 +11,11 @@ asking.
 The brief flagged three assumptions and said to change them only if the company
 needed it. No signal was given either way, so all three stayed as written:
 
-| Assumption | Kept as | Where to change it |
-| --- | --- | --- |
-| UI language | English, left-to-right | n/a — no localisation layer was added |
-| Week start | Monday | `WEEK_STARTS_ON` in `.env` (0 = Sunday … 6 = Saturday) |
-| Productivity basis | `dueDate` | `src/lib/productivity.ts` + the queries in `src/server/queries/stats.ts` |
+| Assumption         | Kept as                | Where to change it                                                       |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------ |
+| UI language        | English, left-to-right | n/a — no localisation layer was added                                    |
+| Week start         | Monday                 | `WEEK_STARTS_ON` in `.env` (0 = Sunday … 6 = Saturday)                   |
+| Productivity basis | `dueDate`              | `src/lib/productivity.ts` + the queries in `src/server/queries/stats.ts` |
 
 Switching the work week to Saturday is a one-character env change
 (`WEEK_STARTS_ON=6`) and needs no code edit — every weekly boundary in the app
@@ -77,7 +77,7 @@ middleware is what makes the session genuinely sliding rather than a hard
 ## 5. Middleware does a cheap check; the real check is server-side
 
 `middleware.ts` runs on the Edge runtime, where Prisma is not available. It
-therefore only checks whether a session cookie is *present* and redirects to
+therefore only checks whether a session cookie is _present_ and redirects to
 `/login` if not. Actual session validation — is the row real, is it expired,
 does the user still exist — happens in `requireUser()`, which every protected
 page and every server action calls. A forged cookie gets past middleware and
@@ -92,7 +92,7 @@ than one server process, which makes the limit decorative in production. Rows
 older than the window are pruned on each attempt, so the table stays small.
 
 The limit is keyed on the identifier as typed (lowercased), which is what the
-brief asked for. Note this is deliberately *not* keyed on IP: it protects an
+brief asked for. Note this is deliberately _not_ keyed on IP: it protects an
 individual account from being guessed at, and the trade-off is that a
 determined attacker can lock a known username out of logging in for 15
 minutes. For an internal tool behind the company network that is the right way
@@ -100,7 +100,7 @@ round; a public product would want both keys.
 
 ## 7. Usernames are stored lowercase
 
-The brief requires usernames to match `[a-z0-9_]` *and* to be case-insensitively
+The brief requires usernames to match `[a-z0-9_]` _and_ to be case-insensitively
 unique. Since the allowed alphabet has no uppercase in it, normalising input to
 lowercase on the way in makes the plain `@unique` constraint case-insensitive
 for free — no `citext` extension, no functional index, no chance of two rows
@@ -129,15 +129,75 @@ cascades to its members and tasks — that is the point of the confirm dialog.
 
 ## 10. Stack choices
 
-| Choice | Why |
-| --- | --- |
-| `@node-rs/argon2` over `argon2` | Same Argon2id algorithm, prebuilt native binaries, so `npm install` needs no compiler toolchain on a new machine. Parameters follow the OWASP cheat sheet: 19 MiB, 2 iterations, parallelism 1. |
-| Prisma 7 with `prisma-client-js` | Current stable line. |
-| Postgres on host port **5434** | 5432 and 5433 were already taken by other containers on the machine this was built on. Change the left-hand side of the `ports:` mapping in `docker-compose.yml` and the port in `DATABASE_URL` together if you want the default. |
-| Next.js `build` uses webpack, `dev` uses Turbopack | Fast local feedback, most conservative production build. |
-| No `next-intl`, no design system | The brief asked for shadcn/ui components used as-is. |
+| Choice                                             | Why                                                                                                                                                                                                                               |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@node-rs/argon2` over `argon2`                    | Same Argon2id algorithm, prebuilt native binaries, so `npm install` needs no compiler toolchain on a new machine. Parameters follow the OWASP cheat sheet: 19 MiB, 2 iterations, parallelism 1.                                   |
+| Prisma 7 with `prisma-client-js`                   | Current stable line.                                                                                                                                                                                                              |
+| Postgres on host port **5434**                     | 5432 and 5433 were already taken by other containers on the machine this was built on. Change the left-hand side of the `ports:` mapping in `docker-compose.yml` and the port in `DATABASE_URL` together if you want the default. |
+| Next.js `build` uses webpack, `dev` uses Turbopack | Fast local feedback, most conservative production build.                                                                                                                                                                          |
+| No `next-intl`, no design system                   | The brief asked for shadcn/ui components used as-is.                                                                                                                                                                              |
 
-## 11. Things intentionally left out
+## 11. No `loading.tsx` on pages that host a server action
+
+This one cost a long afternoon and is worth writing down properly.
+
+**Symptom.** In a _production build only_ (`next build` + `next start`, on both
+the webpack and the Turbopack builder), submitting a server action from a page
+that has a route-level `loading.tsx` would leave the form stuck on its pending
+label — "Creating…", "Adding…" — forever. The database write always succeeded
+and the POST always came back `200` with a complete RSC payload containing the
+action's return value. `next dev` never reproduced it.
+
+**What is actually happening.** A probe inside the dialog showed React _does_
+re-render with the new state, but the surrounding transition never commits, so
+the effects never run and the DOM is never updated. The transition is waiting
+on the re-rendered route tree that ships alongside the action result, and a
+Suspense boundary in that tree stops it from ever finishing. React does not
+show a fallback during a transition — it waits — so the UI simply freezes on
+the pending state with no error anywhere.
+
+**What was ruled out**, each by experiment:
+
+- the `router.push` in the create-project dialog (removing it did not help);
+- a server-side `redirect()` instead (that broke the _destination_ page's
+  actions too, because the stuck transition outlives the navigation);
+- `revalidatePath` — including removing it entirely;
+- the cookie-sliding in `middleware.ts`;
+- the bundler — Turbopack behaves identically;
+- the arrival path — a full page load, a client-side navigation and an
+  action-redirect all failed the same way.
+
+Moving the skeleton from `loading.tsx` into an in-page `<Suspense>` did **not**
+help: any Suspense boundary around the changing part of the tree does it.
+
+**The fix.** Pages that host a server action have no Suspense boundary:
+
+| Route                  | Skeleton? | Why                              |
+| ---------------------- | --------- | -------------------------------- |
+| `/dashboard`           | yes       | read-only, no actions            |
+| `/projects/[id]/stats` | yes       | read-only, no actions            |
+| `/projects`            | no        | create-project runs here         |
+| `/projects/[id]`       | no        | task and member actions run here |
+| `/settings`            | no        | the settings form runs here      |
+
+The three action-hosting pages are each a single aggregated query, so they
+render fast enough that the missing skeleton is not noticeable — Next.js keeps
+the previous page on screen until the new one is ready. This is a trade the
+brief did not anticipate: it asked for loading skeletons, and two of the five
+data routes have them rather than all five. Correct forms beat decorative
+skeletons.
+
+**Also from the same investigation**: `createProjectAction` and
+`deleteProjectAction` finish with a full document load (`window.location.assign`)
+rather than `router.push`. Both navigate to a different route immediately after
+writing, and a full load is the one navigation that cannot be caught up in the
+action's own transition. It costs one page load on two infrequent operations.
+
+If this is ever revisited on a newer Next.js, the check is thirty seconds:
+build for production, open `/projects`, create a project, and see whether the
+button unsticks.
+
+## 12. Things intentionally left out
 
 - **Password reset / email delivery.** Not in the brief and it needs an SMTP
   provider decision. Users are created by signup or by the seed.

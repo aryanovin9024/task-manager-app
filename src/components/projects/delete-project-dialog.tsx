@@ -26,9 +26,16 @@ export function DeleteProjectDialog({ project }: { project: ProjectDetail }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState<ActionState, FormData>(deleteProjectAction, idleState);
 
-  // On success the action itself redirects back to /projects, so there is
-  // nothing to do here beyond surfacing a failure.
-  useActionToast(state, { onSuccess: () => setOpen(false) });
+  // Full document load back to the project list — same reason as
+  // CreateProjectDialog. See DECISIONS.md §11.
+  useActionToast(state, {
+    onSuccess: () => {
+      setOpen(false);
+      window.location.assign(
+        state.status === 'success' ? (state.redirectTo ?? '/projects') : '/projects',
+      );
+    },
+  });
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

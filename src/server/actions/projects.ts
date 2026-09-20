@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 import { getProjectAccess } from '@/lib/authz';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/session';
@@ -53,14 +52,14 @@ export async function createProjectAction(
     select: { id: true },
   });
 
-  revalidatePath('/projects');
-  revalidatePath('/dashboard');
-
-  // Redirect from the server rather than returning a path for the client to
-  // push. Pushing a new route from inside the action's transition, while that
-  // same transition is applying the revalidated tree for the page we are
-  // leaving, deadlocks in a production build — the form stays pending forever.
-  redirect(`/projects/${project.id}`);
+  // Deliberately no revalidatePath and no server-side redirect here: the
+  // client answers a successful create with a full document load of the new
+  // project, which rebuilds every cache on the way in. See DECISIONS.md §11.
+  return {
+    status: 'success',
+    message: 'Project created.',
+    redirectTo: `/projects/${project.id}`,
+  };
 }
 
 export async function updateProjectAction(
@@ -108,13 +107,9 @@ export async function deleteProjectAction(
   // Members and tasks cascade away with the project.
   await prisma.project.delete({ where: { id: parsed.data.projectId } });
 
-  revalidatePath('/projects');
-  revalidatePath('/dashboard');
-
-  // Server-side for the same reason as createProjectAction: the project page
-  // we are on no longer exists, so the navigation has to be part of the
-  // action's own response.
-  redirect('/projects');
+  // As with createProjectAction, the client follows this with a full document
+  // load of /projects, so there is nothing to revalidate here.
+  return { status: 'success', message: 'Project deleted.', redirectTo: '/projects' };
 }
 
 export async function addMemberAction(

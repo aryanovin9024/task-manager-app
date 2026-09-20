@@ -198,7 +198,7 @@ export type StatsQueryInput = z.infer<typeof statsQuerySchema>;
 /** Uniform shape every server action returns so forms can render field errors. */
 export type ActionState =
   | { status: 'idle' }
-  | { status: 'success'; message?: string }
+  | { status: 'success'; message?: string; redirectTo?: string }
   | { status: 'error'; message: string; fieldErrors?: Record<string, string> };
 
 export const idleState: ActionState = { status: 'idle' };

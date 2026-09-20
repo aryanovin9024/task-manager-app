@@ -29,9 +29,17 @@ export function CreateProjectDialog({ children }: { children?: ReactElement }) {
   const descriptionId = useId();
   const [state, formAction] = useActionState<ActionState, FormData>(createProjectAction, idleState);
 
-  // On success the action redirects straight into the new project, so this
-  // only has to deal with the failure case.
-  useActionToast(state, { onSuccess: () => setOpen(false) });
+  // A full document load into the new project, rather than a client-side
+  // push: navigating from inside the action's own transition leaves the form
+  // pending forever in a production build. See DECISIONS.md §11.
+  useActionToast(state, {
+    onSuccess: () => {
+      setOpen(false);
+      if (state.status === 'success' && state.redirectTo) {
+        window.location.assign(state.redirectTo);
+      }
+    },
+  });
 
   const fieldErrors = state.status === 'error' ? state.fieldErrors : undefined;
 
