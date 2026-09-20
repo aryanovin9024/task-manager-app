@@ -1,9 +1,14 @@
 # Netlify build settings. The Next.js runtime is detected automatically, so
 # this file only has to cover the parts Netlify cannot guess.
 [build]
-  # Prisma 7 does not generate the client on install, and the hosted database
-  # needs the migrations applied before the app that queries it boots.
-  command = 'npx prisma generate && DATABASE_URL="${DATABASE_URL:-$NETLIFY_DATABASE_URL}" npx prisma migrate deploy && npm run build'
+  # Prisma 7 does not generate its client on install, so do that first.
+  #
+  # The build never opens a database connection — every data-backed page is
+  # server-rendered on demand — but the environment contract in src/lib/env.ts
+  # is validated at module load, so DATABASE_URL has to be set to something.
+  # Netlify's managed Postgres only exists once a deploy has been published,
+  # so the first build falls back to a value that is never dialled.
+  command = 'npx prisma generate && DATABASE_URL="${NETLIFY_DATABASE_URL:-postgresql://set-at-runtime-not-build}" npm run build'
   publish = ".next"
 
 [build.environment]
