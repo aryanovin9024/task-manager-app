@@ -9,7 +9,7 @@
  * to show when there is nothing to be done.
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `task-manager-shell-${VERSION}`;
 const ASSET_CACHE = `task-manager-assets-${VERSION}`;
 const OFFLINE_URL = '/offline.html';
@@ -64,10 +64,14 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function cacheFirst(request) {
-  const cache = await caches.open(ASSET_CACHE);
-  const hit = await cache.match(request);
+  // Across every cache, not just the asset one: the offline page's icon is
+  // precached into the shell cache, and looking only in the asset cache left
+  // it to a network fetch that cannot succeed — which is exactly when the
+  // offline page is being shown.
+  const hit = await caches.match(request);
   if (hit) return hit;
 
+  const cache = await caches.open(ASSET_CACHE);
   const response = await fetch(request);
   if (response.ok) cache.put(request, response.clone());
   return response;
