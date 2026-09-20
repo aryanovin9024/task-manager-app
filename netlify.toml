@@ -3,7 +3,7 @@
 [build]
   # Prisma 7 does not generate the client on install, and the hosted database
   # needs the migrations applied before the app that queries it boots.
-  command = "npx prisma generate && npx prisma migrate deploy && npm run build"
+  command = 'npx prisma generate && DATABASE_URL="${DATABASE_URL:-$NETLIFY_DATABASE_URL}" npx prisma migrate deploy && npm run build'
   publish = ".next"
 
 [build.environment]

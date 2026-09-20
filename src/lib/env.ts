@@ -23,7 +23,10 @@ const envSchema = z.object({
 });
 
 const parsed = envSchema.safeParse({
-  DATABASE_URL: process.env.DATABASE_URL,
+  // Netlify provisions the hosted Postgres itself and injects the connection
+  // string as NETLIFY_DATABASE_URL. Local development still sets DATABASE_URL
+  // in .env, and that wins, so nothing changes off the platform.
+  DATABASE_URL: process.env.DATABASE_URL ?? process.env.NETLIFY_DATABASE_URL,
   SESSION_SECRET: process.env.SESSION_SECRET,
   WEEK_STARTS_ON: process.env.WEEK_STARTS_ON,
 });
