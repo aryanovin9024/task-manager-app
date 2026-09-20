@@ -8,7 +8,7 @@
   # is validated at module load, so DATABASE_URL has to be set to something.
   # Netlify's managed Postgres only exists once a deploy has been published,
   # so the first build falls back to a value that is never dialled.
-  command = 'npx prisma generate && DATABASE_URL="${NETLIFY_DATABASE_URL:-postgresql://set-at-runtime-not-build}" npm run build'
+  command = 'export DATABASE_URL="${DATABASE_URL:-${NETLIFY_DATABASE_URL:-postgresql://set-at-runtime-not-build}}" && npx prisma generate && npm run build'
   publish = ".next"
 
 [build.environment]
