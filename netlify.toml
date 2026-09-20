@@ -14,3 +14,9 @@
 [build.environment]
   # Match the Node version this project is developed against.
   NODE_VERSION = "22"
+
+# Declared explicitly: auto-detection did not pick the runtime up on this site,
+# and without it Netlify publishes .next as static files with no server, so
+# every server-rendered route 404s.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
