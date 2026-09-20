@@ -1,3 +1,4 @@
+import { getConnectionString } from '@netlify/database';
 import { z } from 'zod';
 
 /**
@@ -22,11 +23,30 @@ const envSchema = z.object({
     ),
 });
 
+/**
+ * Where the Postgres connection string comes from.
+ *
+ * Off-platform — local development, CI — it is DATABASE_URL in the
+ * environment, and that always wins. On Netlify the managed Postgres is
+ * provisioned by the platform, which keeps the read-write credential to
+ * itself and hands it over only through its own accessor at runtime, so ask
+ * for it last and only if nothing else supplied one.
+ */
+function resolveDatabaseUrl(): string | undefined {
+  const fromEnvironment =
+    process.env.DATABASE_URL ?? process.env.NETLIFY_DATABASE_URL ?? process.env.NETLIFY_DB_URL;
+  if (fromEnvironment) return fromEnvironment;
+
+  try {
+    return getConnectionString();
+  } catch {
+    // Not running on Netlify, or no database attached to this site.
+    return undefined;
+  }
+}
+
 const parsed = envSchema.safeParse({
-  // Netlify provisions the hosted Postgres itself and injects the connection
-  // string as NETLIFY_DATABASE_URL. Local development still sets DATABASE_URL
-  // in .env, and that wins, so nothing changes off the platform.
-  DATABASE_URL: process.env.DATABASE_URL ?? process.env.NETLIFY_DATABASE_URL,
+  DATABASE_URL: resolveDatabaseUrl(),
   SESSION_SECRET: process.env.SESSION_SECRET,
   WEEK_STARTS_ON: process.env.WEEK_STARTS_ON,
 });
