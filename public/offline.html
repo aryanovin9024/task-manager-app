@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Offline · Task Manager</title>
+    <link rel="icon" href="/icons/icon-32.png" sizes="32x32" type="image/png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e0e10" />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #0e0e10;
+        --muted: #71717a;
+        --border: #e4e4e7;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e0e10;
+          --fg: #fafaf9;
+          --muted: #a1a1aa;
+          --border: rgba(255, 255, 255, 0.12);
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom));
+        background: var(--bg);
+        color: var(--fg);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main { width: 100%; max-width: 22rem; text-align: center; }
+      img { width: 56px; height: 56px; border-radius: 14px; }
+      h1 {
+        margin: 1.75rem 0 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+      }
+      p { margin: 0.625rem 0 0; font-size: 0.9375rem; line-height: 1.6; color: var(--muted); }
+      button {
+        margin-top: 1.75rem;
+        width: 100%;
+        min-height: 2.75rem;
+        padding: 0 1rem;
+        border: 1px solid var(--border);
+        border-radius: 0.625rem;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 120ms ease;
+      }
+      button:hover { background: color-mix(in oklab, var(--fg) 6%, transparent); }
+      button:active { background: color-mix(in oklab, var(--fg) 10%, transparent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>You're offline</h1>
+      <p>
+        Task Manager keeps your projects on the server, so it needs a connection to show them.
+        Everything is still there — reconnect and pick up where you left off.
+      </p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+    <script>
+      addEventListener('online', function () {
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

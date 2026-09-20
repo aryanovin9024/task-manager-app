@@ -53,7 +53,10 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except Next internals, the favicon and static assets.
-    '/((?!api/health|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt)$).*)',
+    // Everything except Next internals, static assets, and the files an
+    // installable app has to be able to fetch while signed out — the manifest
+    // and the service worker are requested before anyone has a session, and
+    // redirecting them to /login silently breaks installation.
+    '/((?!api/health|_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|offline\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt)$).*)',
   ],
 };

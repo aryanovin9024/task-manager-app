@@ -128,3 +128,24 @@
     @apply font-sans;
   }
 }
+/*
+  Installed to a home screen, the app owns the entire screen — including the
+  strip behind the notch and the home indicator. These pad it back out of the
+  way. Only standalone mode needs them: inside a browser tab the browser's own
+  chrome already sits there. Written outside @layer so they win over the
+  Tailwind padding utilities on the same elements.
+*/
+@media (display-mode: standalone) {
+  .pwa-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pwa-safe-bottom {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .pwa-safe-y {
+    padding-top: calc(2.5rem + env(safe-area-inset-top));
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+  }
+}
