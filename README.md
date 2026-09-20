@@ -149,6 +149,35 @@ nothing was due, the same page shows **—** and **0 / 0 done** — not 0%.
 
 ---
 
+## Deployment
+
+The app is deployed on Netlify at <https://arya-task-manager.netlify.app>, and
+every push to `main` rebuilds it automatically.
+
+Postgres in production is Netlify's own managed database, which changes two
+things compared with local development:
+
+- **The connection string is never an environment variable.** Netlify keeps the
+  read-write credential to itself and hands it to `@netlify/database` at
+  runtime; the only string it will show you is a read-only role. So
+  `src/lib/env.ts` asks that package for the connection when `DATABASE_URL` is
+  absent. Set `DATABASE_URL` and it wins, which is what local development and
+  any other host do.
+- **Prisma cannot create the schema there.** The app's role has no `CREATE` on
+  `public`; that belongs to Netlify's migration runner, which applies anything
+  under `netlify/database/migrations` on deploy. That SQL is generated from the
+  same `prisma/schema.prisma`, so there is still one source of truth:
+
+  ```bash
+  npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script
+  ```
+
+  After changing the schema, add the new statements as a migration there as
+  well, or production will drift from `prisma/migrations`.
+
+The production database starts empty — no seed runs against it — so the first
+visitor signs up and the demo accounts above exist only on your machine.
+
 ## Scripts
 
 | Script                 | What it does                                                            |
